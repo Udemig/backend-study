@@ -1,6 +1,7 @@
 // file system özelliklerini bu dosyada kullanbilecez
 const fs = require('fs');
 const http = require('http');
+const url = require('url');
 const replaceTemplate = require('./modules/replaceTemplate');
 
 // Dosya Sistemi
@@ -65,7 +66,11 @@ const dataObj = JSON.parse(data);
 
 // her istek atıdğında çalışıcak fonk.
 const server = http.createServer((req, res) => {
-  if (req.url === '/' || req.url === '/overview') {
+  // url'deki parçalara erişme
+  const { query, pathname } = url.parse(req.url, true);
+  console.log(query.id, pathname);
+
+  if (pathname === '/' || pathname === '/overview') {
     res.writeHead(200, {
       'Content-Type': 'text/html',
     });
@@ -83,12 +88,17 @@ const server = http.createServer((req, res) => {
 
     //* res.end >  döndürülecek cevabı belirle
     res.end(output);
-  } else if (req.url === '/product') {
+  } else if (pathname === '/product') {
     res.writeHead(200, {
       'Content-Type': 'text/html',
     });
-    res.end('<h1>Suan Detay Sayfasindasin</h1>');
-  } else if (req.url === '/api') {
+    // urldeki id ye göre ürünü bulma
+    const product = dataObj[query.id];
+    // template'i ürüne göre ayarla
+    const output = replaceTemplate(tempProduct, product);
+    // client'e html'i gönder
+    res.end(output);
+  } else if (pathname === '/api') {
     res.writeHead(200, {
       'Content-Type': 'application/json',
     });
