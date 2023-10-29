@@ -1,11 +1,11 @@
 const express = require('express');
 var morgan = require('morgan');
+
 var tourRouter = require('./routes/tourRoutes');
 var userRouter = require('./routes/userRoutes');
 
 const app = express();
 app.use(express.json());
-const port = 3000;
 
 // * 1 ) MiddleWare'ler
 
@@ -22,6 +22,5 @@ app.use((req, res, next) => {
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 
-app.listen(port, () => {
-  console.log(`Uygulama ${port} portunda çalışıyor...`);
-});
+// export
+module.exports = app;
