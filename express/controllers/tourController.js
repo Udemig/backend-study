@@ -1,27 +1,122 @@
 const Tour = require('../models/tourModel');
+const APIFeatures = require('../utils/apiFeatures');
 
-// const tours = await Tour.find()
-//   .where('duration')
-//   .equals(5)
-//   .where('difficulty')
-//   .equals('easy');
+// middleware >  alias : takma ad
+exports.aliasTopTours = (req, res, next) => {
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAvarage,price';
+  req.query.fields = 'name,price,ratingsAvarage,summary,difficulty';
+  // bir sonraki eyleeme çalışma izni veririr
+  next();
+};
 
 //! Fonksiyonlar
 //! Route Handlers
+
+exports.getMonthlyPlan = async (req, res) => {
+  try {
+    const year = Number(req.params.year);
+
+    const plan = await Tour.aggregate([
+      // 1) başlama tarihi dizisindeki her bir eleman için turun bir kopyasını oluşturs
+      {
+        $unwind: '$startDates',
+      },
+      // 2) belirli yıldaki turları al
+      {
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`),
+          },
+        },
+      },
+    ]);
+
+    //   id geçerliyse turu güncelle
+    res.status(200).json({
+      status: 'success',
+      data: {
+        plan,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      error: err,
+    });
+  }
+};
+
+//
+//
+//
+//
+exports.getTourStats = async (req, res) => {
+  try {
+    // Aggregate Pipeline
+    // Raporlama Adımları
+    const stats = await Tour.aggregate([
+      // 1.Adım )  ratingi 4 ve üstü olanları alma
+      {
+        $match: { ratingsAvarage: { $gte: 4.0 } },
+      },
+      // 2.Adım ) gruplandırma
+      {
+        $group: {
+          _id: { $toUpper: '$difficulty' },
+          tourCount: { $sum: 1 },
+          avgRating: { $avg: '$ratingsAvarage' },
+          avgPrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' },
+        },
+      },
+      // 3.Adım ) sıralama oluşturdğumuz istatistikleri sıralama
+      {
+        $sort: { avgPrice: 1 },
+      },
+      // 4.Adım ) İstemediğimiz değerleri çıkar
+      {
+        $match: { minPrice: { $gte: 400 } },
+      },
+    ]);
+
+    //   id geçerliyse turu güncelle
+    res.status(200).json({
+      status: 'success',
+      data: {
+        stats,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      error: err,
+    });
+  }
+};
 exports.getAllTours = async (req, res) => {
   try {
-    // bütün tur verisini alır
-    const tours = await Tour.find(req.query); //url'deki parametrelere göre filtreleme yapar
+    // api özellikleri için oluştudğumuz sınıfın methdolarını kullanma
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limit()
+      .paginate();
+
+    // Son) Komutları çalıştır
+    const tours = await features.query;
 
     res.status(200).json({
       status: 'success',
-      reqTime: req.requestTime,
       results: tours.length,
       data: { tours },
     });
   } catch (err) {
+    console.log(err);
     res.status(400).json({
-      status: fail,
+      status: 'fail',
       error: err,
     });
   }
