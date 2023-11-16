@@ -1,5 +1,6 @@
 const Tour = require('../models/tourModel');
 const APIFeatures = require('../utils/apiFeatures');
+const catchAsync = require('../utils/catchAsync');
 
 // middleware >  alias : takma ad
 exports.aliasTopTours = (req, res, next) => {
@@ -179,41 +180,29 @@ exports.createTour = async (req, res) => {
     });
   }
 };
-exports.updateTour = async (req, res) => {
-  try {
-    // id'sine göre bir turu bulur ve günceller
-    const tour = await Tour.findByIdAndUpdate(
-      req.params.id,
-      req.body
-    );
+exports.updateTour = catchAsync(async (req, res) => {
+  // id'sine göre bir turu bulur ve günceller
+  const tour = await Tour.findByIdAndUpdate(req.params.id, req.body);
 
-    res.status(200).json({
-      status: 'success',
-      data: {
-        tour: tour,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: 'fail',
-      error: err,
-    });
-  }
-};
-exports.deleteTour = async (req, res) => {
-  try {
-    await Tour.findByIdAndDelete(req.params.id);
-    //   id geçerliyse turu güncelle
-    res.status(204).json({
-      status: 'success',
-      data: {
-        tour: null,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: 'fail',
-      error: err,
-    });
-  }
-};
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tour: tour,
+    },
+  });
+  res.status(400).json({
+    status: 'fail',
+    error: err,
+  });
+});
+
+exports.deleteTour = catchAsync(async (req, res) => {
+  await Tour.findByIdAndDelete(req.params.id);
+  //   id geçerliyse turu güncelle
+  res.status(204).json({
+    status: 'success',
+    data: {
+      tour: null,
+    },
+  });
+});

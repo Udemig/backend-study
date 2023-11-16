@@ -10,6 +10,8 @@ const {
   createTour,
 } = require('../controllers/tourController');
 
+const authController = require('../controllers/authController');
+
 // router oluşturma
 const router = express.Router();
 
@@ -30,14 +32,18 @@ router.route('/monthly-plan/:year').get(getMonthlyPlan);
 // çalışacak fonksiyonları belirleme
 router
   .route('/')
-  .get(getAllTours) //
-  .post(createTour);
+  .get(authController.protect, getAllTours) //
+  .post(authController.protect, createTour);
 
 router
   .route('/:id')
-  .get(getTour)
-  .patch(updateTour)
-  .delete(deleteTour);
+  .get(getTour) //
+  .patch(updateTour) //
+  .delete(
+    authController.protect, // oturum kontrolü
+    authController.restricTo('admin', 'lead-guide'), // rol kontrolü
+    deleteTour
+  );
 
 //   app.js de kullanmak için export etme
 module.exports = router;

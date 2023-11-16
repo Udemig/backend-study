@@ -10,6 +10,12 @@ router.post('/signup', authController.signup);
 // giriş yapmak için
 router.post('/login', authController.login);
 
+// sıfır maili gönderirir
+router.post('/forgotPassword', authController.forgotPassword);
+
+// yeni şifreyi kaydeder
+router.post('/resetPassword', authController.resetPassword);
+
 //   kullanıcılar için
 router
   .route('/')
