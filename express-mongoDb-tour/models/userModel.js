@@ -49,11 +49,22 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
 
   passwordResetToken: String,
+
+  passwordResetExpires: Date,
+
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
+  },
 });
 
 // Veritabanıan kaydetmeden önce veriyi şifrele
 // ve passwordConfirmi kaldır
-userSchema.pre('save', async function () {
+userSchema.pre('save', async function (next) {
+  // şifre değişmediyse tekrardan koruma işlemini aktif et
+  if (!this.isModified('password')) return next();
+
   // Hashing
   // Belirli algoritmalar kullanarak verininin benszersiz şifrelenmiş verisyonunu oluştur
   // Aynı girdi için her zman aynı çıktı oluşturlu
@@ -66,6 +77,25 @@ userSchema.pre('save', async function () {
 
   // onay şifresini sil
   this.passwordConfirm = undefined;
+});
+
+// eğerki şifre değişmişse şifre değişme tarihini ekle
+userSchema.pre('save', function (next) {
+  // şifre değişmediyse veya yeni döküman oluştuysa bir şey yapma
+  if (!this.isModified('password') || this.isNew) return next();
+
+  // şifre değişim tarihinin her zaman yeni oluşturulan tokenden
+  // önce olması için değişim tarihini tanımlarken 1 saniye çıkarttık
+  this.passwordChangedAt = Date.now() - 1000;
+
+  next();
+});
+
+// kullanıcıyı veirtabanında almaya çalışmadan önbce çalışırı
+// inaktif olan hesapları aradan çıkartır
+userSchema.pre(/^find/, function (next) {
+  this.find({ active: { $ne: false } });
+  next();
 });
 
 // hashlenmiş şifree ile orjinalini karşılaştıran fonk. oluştur
@@ -105,6 +135,11 @@ userSchema.methods.createPasswordResetToken = function () {
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
+
+  // tokennin geçerliği olucağı son tarihi belirle (10 dk sonrası)
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  console.log(this);
 
   // fonksiyonun çağrıldığı yerer döndür
   return resetToken;

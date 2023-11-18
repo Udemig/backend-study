@@ -2,12 +2,27 @@ const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const sendEmail = require('../utils/email');
+const crypto = require('crypto');
 
 // jwt tokeni oluşturur ve döndürür
 const signToken = (id) => {
   return (token = jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES,
   }));
+};
+
+// tokeni oluştur ve cevap olarak gönder
+const createSendToken = (user, statusCode, res) => {
+  const token = signToken(user._id);
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
 };
 
 // yeni hesap oluştur
@@ -21,15 +36,7 @@ exports.signup = catchAsync(async (req, res) => {
     });
 
     // jwt tokeni oluştur
-    const token = signToken(newUser._id);
-
-    res.status(201).json({
-      status: 'success',
-      token,
-      data: {
-        user: newUser,
-      },
-    });
+    createSendToken(newUser, 200, res);
   } catch (err) {
     res.status(400).json({
       status: 'fail',
@@ -57,12 +64,7 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   // 3) her şey tamamsa tokeni oluştur ve gönder gönder
-  const token = signToken(user.id);
-
-  res.status(201).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
 
 // kormumalı route
@@ -166,14 +168,98 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 2) Şifre sıfırlama tokeni oluştur
+  // 2) Şifre sıfırlama tokeni oluştur1
   const resetToken = user.createPasswordResetToken();
 
   // TODO veritabanını tokenin şifrelenmiş halini sakla
   await user.save({ validateBeforeSave: false });
 
   // TODO 3) Kullanıcının maline gönder
+  try {
+    const resetURL = `http://127.0.0.1:3000/api/v1/users/resetPassword/${resetToken}`;
+
+    const text = `Şifrenizi mi unuttunuz?
+    Yeri şifre ile birlikte ${resetURL} 'e PATCH  isteği gönderin.
+    Sıfırlamak istemiyorsanız sadece bir şey yapmanıza grerek yok.`;
+
+    await sendEmail({
+      email: user.email,
+      subject: 'Şifre sıfırlama tokeni (10 dakika)',
+      text: text,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'token maile gönderildi',
+    });
+  } catch (err) {
+    // şifre sıfırlama tokenini ve date'ini kaldır
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    next(
+      new AppError(
+        'Mail göndermeye çalışırken bir hata oluştu! Lütfen daha sonra tekrar deneyin.',
+        500
+      )
+    );
+  }
 });
 
 // kullanıcnın yeni şifreisni kaydeder
-exports.resetPassword = (req, res, next) => {};
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // 1) token'den yola çıkarak kullanıcıyı bul
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken, // token'le eşeleşn kullanıcıyı ala
+    passwordResetExpires: { $gt: Date.now() }, //geçerlilik tarihi şuanki tarihten daha büyük olan kullanıcları getir
+  });
+
+  // 2) kullanıcı bulunduysa ve tokenin tarihi geçememişse yeni şifereyi belirle
+  if (!user) {
+    return next(
+      new AppError('Token geçerli değil veya süresi dolmuş', 400)
+    );
+  }
+
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  // 3) kullanıcın şifre değiştirme tarihini güncelle
+  //  bunun için otomatik çalışan yapı oluşştur
+
+  // 4) kullanıcın hesabına giriş yap > jwt gönder
+  createSendToken(user, 201, res);
+});
+
+// eski şifreyi hatırlayan kullanıcı için şifre değiştirme
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // 1) Kullanıcıyı al
+  const user = await User.findById(req.user.id).select('+password');
+
+  // 2) gelen mevcut şifre doğru mu kontrol et
+  if (
+    !(await user.correctPassword(
+      req.body.passwordCurrent,
+      user.password
+    ))
+  ) {
+    return next(new AppError('Göderdiğiniz mevcut şifre yanlış'));
+  }
+
+  // 3) Doğruysa şifreyi güncelle
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  await user.save();
+
+  // 4) Yeni JWT tokenşi oluştur ve gönder
+  createSendToken(user, 200, res);
+});
