@@ -16,9 +16,22 @@ const signToken = (id) => {
 const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
 
+  //  çerez ayarları
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.COOKIE_EXPIRES * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+    secure: true,
+  };
+
+  // tokeni sadece http üzerinde seyahat eden çerezler üzerinde göndericez
+  res.cookie('jwt', token, cookieOptions);
+
+  user.password = undefined;
+
   res.status(statusCode).json({
     status: 'success',
-    token,
     data: {
       user,
     },
@@ -176,7 +189,9 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // TODO 3) Kullanıcının maline gönder
   try {
-    const resetURL = `http://127.0.0.1:3000/api/v1/users/resetPassword/${resetToken}`;
+    const resetURL = `${req.protocol}://${req.get(
+      'host'
+    )}/api/v1/users/resetPassword/${resetToken}`;
 
     const text = `Şifrenizi mi unuttunuz?
     Yeri şifre ile birlikte ${resetURL} 'e PATCH  isteği gönderin.

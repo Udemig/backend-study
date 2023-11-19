@@ -18,9 +18,7 @@ mongoose
   .catch(() => console.log('Veritabanı ile bağlantı başarısız!!!'));
 
 // turlar dosyasındaki verilei oku
-const tours = JSON.parse(
-  fs.readFileSync(`${__dirname}/tours-simple.json`)
-);
+const tours = JSON.parse(fs.readFileSync(`${__dirname}/tours.json`));
 
 // tüm verileri veritababaınıa aktar
 const importData = async () => {

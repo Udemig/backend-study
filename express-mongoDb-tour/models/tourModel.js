@@ -15,10 +15,10 @@ const tourSchema = new mongoose.Schema(
       unique: true,
       minLength: [10, 'Tur ismi en az 10 karakter olamalıdır'],
       maxLength: [40, 'Tur ismi en fazla 40 karakter olamalıdır'],
-      validate: [
-        validator.isAlpha,
-        'İsimde sadce karakterler olmalıdır',
-      ],
+      // validate: [
+      //   validator.isAlpha,
+      //   'İsimde sadce karakterler olmalıdır',
+      // ],
     },
     duration: {
       type: Number,
@@ -95,6 +95,37 @@ const tourSchema = new mongoose.Schema(
       default: Date.now(),
     },
     slug: String,
+    startLocation: {
+      // GeoJson
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'],
+      },
+      description: String,
+      coordinates: [Number],
+      adress: String,
+    },
+
+    // lokasyonları embeddig yöntemiyle tutma
+    // dizi tanımlamak çok önemli her bir lokasyon turun içine
+    // gömülmüş bir döüman olucaj
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+        },
+        coordinates: [Number],
+        adreess: String,
+        description: String,
+        day: Number,
+      },
+    ],
+
+    // tur rehberleri
+    guides: Array,
   },
   // ayarları belirleme
   // sanal değerleri aktif ettik
