@@ -16,28 +16,24 @@ router.post('/forgotPassword', authController.forgotPassword);
 // yeni şifreyi kaydeder
 router.patch('/resetPassword/:token', authController.resetPassword);
 
+// bu satırın altındaki bütün route'lar dan önce bu çalışır
+router.use(authController.protect);
+
 // hesabı açıkken şifre dğeiştrimek isterse
 router.patch(
   '/updateMyPassword',
-  authController.protect, // kullanıcın oturumu açık mı kontrol eder
   authController.updatePassword // şifresni günceller
 );
 
 // hesbaın bilgielerini güncelle
-router.patch(
-  '/updateMe',
-  authController.protect,
-  userController.updateMe
-);
+router.patch('/updateMe', userController.updateMe);
 
 // hasabı inaktif yapar
-router.delete(
-  '/deleteMe',
-  authController.protect,
-  userController.deleteMe
-);
+router.delete('/deleteMe', userController.deleteMe);
 
-//   kullanıcılar için
+// sadece adminlerin yapabilcekleri
+router.use(authController.restricTo('admin'));
+
 router
   .route('/')
   .get(userController.getAllUsers) //

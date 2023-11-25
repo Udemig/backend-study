@@ -11,9 +11,13 @@ const {
 } = require('../controllers/tourController');
 
 const authController = require('../controllers/authController');
+const reviewRouter = require('../routes/reviewRoutes');
 
 // router oluşturma
 const router = express.Router();
+
+//! nested route tanımlama
+router.use('/:tourId/reviews', reviewRouter); // "/tour/:tourId/reviews"
 
 // top-five-best çok kullanılan bir route olsun
 // bizde onun için frontend'den parametre gelemese bile
@@ -26,14 +30,24 @@ router.route('/top-five-best').get(aliasTopTours, getAllTours);
 router.route('/tour-stats').get(getTourStats);
 
 // gerçek seneryo: belirili yıl için her ay başlıyacak tur sayısı ve isimleri
-router.route('/monthly-plan/:year').get(getMonthlyPlan);
+router
+  .route('/monthly-plan/:year')
+  .get(
+    authController.protect,
+    authController.restricTo('admin', 'lead-guide', 'guide'),
+    getMonthlyPlan
+  );
 
 // router'a yapılan isteklerde
 // çalışacak fonksiyonları belirleme
 router
   .route('/')
-  .get(authController.protect, getAllTours) //
-  .post(authController.protect, createTour);
+  .get(getAllTours) //
+  .post(
+    authController.protect,
+    authController.restricTo('admin', 'lead-guide'),
+    createTour
+  );
 
 router
   .route('/:id')

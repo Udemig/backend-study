@@ -56,3 +56,17 @@
 2. Parent Refferance (Ebevyn Referansı)
 
 3. Two Way Refferance (İki Yönlü Referans)
+
+# Populate vs Vırtual Populate
+
+1. Normal Populate:
+
+- Belirli bir kolleksiyondaki belgelerin referans aracılığı ile farklı bir kolleksiyona kolleksiyondaki belegeye dodlrulmasını sağlar
+
+2. Virtual Populate:
+
+- Normal populate ile benzer bir işlevi yerine getirir.
+
+- Virtual popula teile şemada sanal bir alan oluşturulur ve bu alan belirli bir alanın referansları üzeirnden diğer kolleksiyondaki belgelerle doldurulur. Virtual alan aslında fiziksel olarak veritabanında ek bir alan eklemek yerine sorgular sırasında otomatik olan doldurulan bir alan olarak çalışır.
+
+- Virual populate, performans avantajları sağlayabilir . Çünkü veritabanına gereksiz bir alan eklemek yerine sadece ihtiyaç duyulduğunda doldulan bir a alan sağlar

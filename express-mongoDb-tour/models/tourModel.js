@@ -125,8 +125,14 @@ const tourSchema = new mongoose.Schema(
     ],
 
     // tur rehberleri
-    guides: Array,
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId, // burayı bir dökümanın id'si gelicek
+        ref: 'User',
+      },
+    ],
   },
+
   // ayarları belirleme
   // sanal değerleri aktif ettik
   {
@@ -141,6 +147,15 @@ const tourSchema = new mongoose.Schema(
 // isteğe cevap  göndermeden önce ekleme
 tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
+});
+
+//! virtual populate
+// normalde yorumları parent refeerance ile turlara bağlamıştık
+// ama turları aldığımız zzaman yorumlara ertişemiyoruz.
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour', // referans aladığımız dökümanın hagi alanına göre bu döküma ekliyecez
+  localField: '_id', // diğer döükmandan aldığımız alanın bü dokumandaki karşılığı
 });
 
 //! document middleware
@@ -162,6 +177,22 @@ tourSchema.post('save', function (doc, next) {
 // sorgulardan önce veysa sonra devreye giren middleware
 tourSchema.pre(/^find/, function (next) {
   this.find({ secretTour: { $ne: true } });
+  next();
+});
+
+//* Populating (Doldurma)
+// MongoDB'de populating bir belgedeki belirli bir alanın,
+// o alaana referans veren diğer bir belgedki belegelerle doldurlması
+// anlamına gelir. Yani poplating, referansları gerçek verilerle
+// doldurmayı sağlar
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    // doldurulması gereken alan ismi
+    path: 'guides',
+    // doldururken istemediğimiz alanları tanımlama
+    select:
+      '-__v -passwordChangedAt -passwordResetExpires -passwordResetToken',
+  });
   next();
 });
 

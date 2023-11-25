@@ -1,6 +1,7 @@
 const Tour = require('../models/tourModel');
 const APIFeatures = require('../utils/apiFeatures');
 const catchAsync = require('../utils/catchAsync');
+const factory = require('./handlerFactory');
 
 // middleware >  alias : takma ad
 exports.aliasTopTours = (req, res, next) => {
@@ -121,88 +122,103 @@ exports.getTourStats = async (req, res) => {
   }
 };
 
-exports.getAllTours = async (req, res) => {
-  try {
-    // api özellikleri için oluştudğumuz sınıfın methdolarını kullanma
-    const features = new APIFeatures(Tour.find(), req.query)
-      .filter()
-      .sort()
-      .limit()
-      .paginate();
+exports.getAllTours = factory.getAll(Tour);
+// exports.getAllTours = async (req, res) => {
+//   try {
+//     // api özellikleri için oluştudğumuz sınıfın methdolarını kullanma
+//     const features = new APIFeatures(Tour.find(), req.query)
+//       .filter()
+//       .sort()
+//       .limit()
+//       .paginate();
 
-    // Son) Komutları çalıştır
-    const tours = await features.query;
+//     // Son) Komutları çalıştır
+//     const tours = await features.query;
 
-    res.status(200).json({
-      status: 'success',
-      results: tours.length,
-      data: { tours },
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(400).json({
-      status: 'fail',
-      error: err,
-    });
-  }
-};
-exports.getTour = async (req, res) => {
-  try {
-    // id'sine göre kolleksiyondan bir dökuman getirme
-    const tour = await Tour.findById(req.params.id);
-    // const tour = await Tour.findOne({_id: req.params.id });
+//     res.status(200).json({
+//       status: 'success',
+//       results: tours.length,
+//       data: { tours },
+//     });
+//   } catch (err) {
+//     console.log(err);
+//     res.status(400).json({
+//       status: 'fail',
+//       error: err,
+//     });
+//   }
+// };
 
-    res.status(200).json({
-      status: 'success',
-      data: { tour },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: 'fal',
-      error: err,
-    });
-  }
-};
-exports.createTour = async (req, res) => {
-  try {
-    //  mongo db'deki tours kolleksiyonuna veriyi dokuman olarak kaydet
-    const newTour = await Tour.create(req.body);
+exports.getTour = factory.getOne(Tour, { path: 'reviews' });
+// exports.getTour = async (req, res) => {
+//   try {
+//     // id'sine göre kolleksiyondan bir dökuman getirme
+//     const tour = await Tour.findById(req.params.id).populate(
+//       'reviews'
+//     );
+//     // const tour = await Tour.findOne({_id: req.params.id });
 
-    res.status(200).json({
-      status: 'success',
-      data: { tour: newTour },
-    });
-  } catch (err) {
-    // hata olursa hatayı gönder
-    res.status(400).json({
-      status: 'fail',
-      message: err,
-    });
-  }
-};
-exports.updateTour = catchAsync(async (req, res) => {
-  // id'sine göre bir turu bulur ve günceller
-  const tour = await Tour.findByIdAndUpdate(req.params.id, req.body);
+//     res.status(200).json({
+//       status: 'success',
+//       data: { tour },
+//     });
+//   } catch (err) {
+//     console.log(err);
+//     res.status(400).json({
+//       status: 'fal',
+//       error: err,
+//     });
+//   }
+// };
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      tour: tour,
-    },
-  });
-  res.status(400).json({
-    status: 'fail',
-    error: err,
-  });
-});
+exports.createTour = factory.createOne(Tour);
+// exports.createTour = async (req, res) => {
+//   try {
+//     //  mongo db'deki tours kolleksiyonuna veriyi dokuman olarak kaydet
+//     const newTour = await Tour.create(req.body);
 
-exports.deleteTour = catchAsync(async (req, res) => {
-  await Tour.findByIdAndDelete(req.params.id);
-  //   id geçerliyse turu güncelle
-  res.status(204).json({
-    status: 'success',
-    data: {
-      tour: null,
-    },
-  });
-});
+//     res.status(200).json({
+//       status: 'success',
+//       data: { tour: newTour },
+//     });
+//   } catch (err) {
+//     // hata olursa hatayı gönder
+//     res.status(400).json({
+//       status: 'fail',
+//       message: err,
+//     });
+//   }
+// };
+
+exports.updateTour = factory.updateOne(Tour);
+
+// exports.updateTour = catchAsync(async (req, res, next) => {
+//   // id'sine göre bir turu bulur ve günceller
+//   const tour = await Tour.findByIdAndUpdate(req.params.id, req.body);
+
+//   if (!tour) {
+//     return next(new AppError('Bu id için tu bulunamadı', 404));
+//   }
+
+//   res.status(200).json({
+//     status: 'success',
+//     data: {
+//       tour: tour,
+//     },
+//   });
+// });
+
+// Yeni Yol
+exports.deleteTour = factory.deleteOne(Tour);
+
+// Eski Yol
+// exports.deleteTour = catchAsync(async (req, res) => {
+//   await Tour.findByIdAndDelete(req.params.id);
+//   //   id geçerliyse turu güncelle
+//   res.status(204).json({
+//     status: 'success',
+//     data: {
+//       tour: null,
+//     },
+//   });
+// });

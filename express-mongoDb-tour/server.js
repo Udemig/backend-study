@@ -13,7 +13,9 @@ const DB = process.env.DATABASE.replace(
 mongoose
   .connect(DB)
   .then(() => console.log('Veritabanı ile bağlantı kuruldu'))
-  .catch(() => console.log('Veritabanı ile bağlantı başarısız!!!'));
+  .catch((err) =>
+    console.log('Veritabanı ile bağlantı başarısız!!!', err)
+  );
 
 //   server'ı ayağa kaldır
 const port = process.env.PORT || 3000;

@@ -2,6 +2,7 @@ const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const filterObj = require('../utils/filterObj');
+const factory = require('./handlerFactory');
 
 // kullanıclar için
 exports.updateMe = catchAsync(async (req, res, next) => {
@@ -45,37 +46,17 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getAllUsers = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'route tanımlanmadı',
-  });
-};
-
 exports.createUser = (req, res) => {
   res.status(500).json({
     status: 'error',
-    message: 'route "tanımlanmadı',
+    message: 'route tanımlanmadı /signup kullanın ',
   });
 };
 
-exports.getUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'route tanımlanmadı',
-  });
-};
+exports.getAllUsers = factory.getAll(User);
 
-exports.updateUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'route tanımlanmadı',
-  });
-};
+exports.getUser = factory.getOne(User);
 
-exports.deleteUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'route tanımlanmadı',
-  });
-};
+exports.updateUser = factory.updateOne(User);
+
+exports.deleteUser = factory.deleteOne(User);
