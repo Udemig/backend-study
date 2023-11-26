@@ -3,6 +3,8 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const Tour = require('../../models/tourModel');
+const User = require('../../models/userModel');
+const Review = require('../../models/reviewModel');
 dotenv.config({ path: './config.env' });
 
 // şifre alanını tamamamlama
@@ -19,11 +21,17 @@ mongoose
 
 // turlar dosyasındaki verilei oku
 const tours = JSON.parse(fs.readFileSync(`${__dirname}/tours.json`));
+const reviews = JSON.parse(
+  fs.readFileSync(`${__dirname}/reviews.json`)
+);
+const users = JSON.parse(fs.readFileSync(`${__dirname}/users.json`));
 
 // tüm verileri veritababaınıa aktar
 const importData = async () => {
   try {
     await Tour.create(tours); // dizideki her bir elmanı kaydeder
+    await Review.create(reviews);
+    await User.create(users, { validateBeforeSave: false });
     console.log('kaydetme başarılı');
     process.exit(); // terminaldeki görevi bitirir
   } catch (err) {
@@ -34,6 +42,8 @@ const importData = async () => {
 const deleteData = async () => {
   try {
     await Tour.deleteMany(); // koşul vermediğimiz için bütün dökümanları siler
+    await Review.deleteMany();
+    await User.deleteMany();
     console.log('silme başarılı');
     process.exit();
   } catch (err) {

@@ -1,5 +1,6 @@
 const Tour = require('../models/tourModel');
 const APIFeatures = require('../utils/apiFeatures');
+const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
 
@@ -222,3 +223,80 @@ exports.deleteTour = factory.deleteOne(Tour);
 //     },
 //   });
 // });
+
+// /tours/123/center/34.062733,-118.165345/unit/km
+exports.getToursWithin = catchAsync(async (req, res, next) => {
+  const { distance, latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+
+  // gelen unite göre yarı çap hesaplama
+  const radius =
+    unit === 'mi' ? distance / 3963.2 : distance / 6378.1;
+
+  if (!lat || !lng) {
+    return next(
+      new AppError(
+        'Lütfen merkez noktanın enlem ve boylamını tanımlayın'
+      )
+    );
+  }
+
+  // coğrafi konuma göre filteleme
+  const tours = await Tour.find({
+    startLocation: {
+      $geoWithin: { $centerSphere: [[lng, lat], radius] },
+    },
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      tours,
+    },
+  });
+});
+
+exports.getDistances = catchAsync(async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+  console.log('merhaba', +lat, +lng);
+
+  if (!lat || !lng) {
+    return next(
+      new AppError(
+        'Lütfen merkez noktanın enlem ve boylamını tanımlayın'
+      )
+    );
+  }
+
+  const multiplier = unit === 'mi' ? 0.000621371192 : 0.001;
+
+  const distances = await Tour.aggregate([
+    // 1) Turların verilen konuma uzukalrıklarını hesapla
+    {
+      $geoNear: {
+        near: {
+          type: 'Point',
+          coordinates: [+lng, +lat],
+        },
+        distanceField: 'distance',
+        distanceMultiplier: multiplier,
+      },
+    },
+    // sadece isim ve uzaklık alanlarını al
+    {
+      $project: {
+        distance: 1,
+        name: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      distances,
+    },
+  });
+});

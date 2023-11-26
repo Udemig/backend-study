@@ -1,6 +1,7 @@
 // yorum içieriği / 3 yıldız / oluştutlma tarihi / hangi tura atıldığının referansı / kullanıcının referansı
 
 const mongoose = require('mongoose');
+const Tour = require('./tourModel');
 
 const reviewSchema = new mongoose.Schema(
   {
@@ -42,6 +43,60 @@ reviewSchema.pre(/^find/, function (next) {
   });
 
   next();
+});
+
+// Bir tur için ortalama yorum hesaplayacak fonksiyon
+// review schemasına ekledik
+reviewSchema.statics.calcAvarageRatings = async function (tourId) {
+  // gönderilen tur için ortalama değerlendirme
+  // ve toplam yorum sayısını hesaplar
+  const stats = await this.aggregate([
+    // 1) gönderilen turId'siyle eşeleşen yorumları al
+    {
+      $match: { tour: tourId },
+    },
+    // 2) toplam yorum sayısı ve ort. rating
+    {
+      $group: {
+        _id: '$tour',
+        nRating: { $sum: 1 }, // tura gelen toplam yorum sayısı
+        avgRating: { $avg: '$rating' }, // ort rating
+      },
+    },
+  ]);
+
+  if (stats.length > 0) {
+    // istatistik sonuçlarıyla, ilgili turu güncelle
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsAvarage: stats[0].avgRating,
+      ratingQuantity: stats[0].nRating,
+    });
+  } else {
+    // eğerki hiç yorum yoksa varsasayılan değelere ayarla
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsAvarage: 4,
+      ratingQuantity: 0,
+    });
+  }
+};
+
+// TODO KONTROL ET
+// bütün kullanıcı ve tur kombinosyonları benzersiz olmalı
+// eğerki bir kullanıcı aynı tura ikinci yorumu atarsa hata verir
+reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+
+// her yeni yorum atıldığında ratingi hesapla
+reviewSchema.post('save', function () {
+  // this oluşturlan yoruma denk gelir
+  // this constuctor ise yorumu oluşturan model
+  this.constructor.calcAvarageRatings(this.tour);
+});
+
+// yorum her güncellendiğinde ve silindiğinde
+// findByIdAndUpdate
+// findByIdAndDelete
+reviewSchema.post(/^findOneAnd/, async function (doc) {
+  await doc.constructor.calcAvarageRatings(doc.tour);
 });
 
 const Review = mongoose.model('Review', reviewSchema);

@@ -103,7 +103,7 @@ exports.getAll = (Model) =>
       .paginate();
 
     // Son Komutları çalıştır
-    const docs = await features.query;
+    const docs = await features.query.explain();
 
     res.status(200).json({
       status: 'success',

@@ -4,10 +4,12 @@ const {
   aliasTopTours,
   getMonthlyPlan,
   getTourStats,
+  getToursWithin,
   getTour,
   updateTour,
   deleteTour,
   createTour,
+  getDistances,
 } = require('../controllers/tourController');
 
 const authController = require('../controllers/authController');
@@ -37,6 +39,14 @@ router
     authController.restricTo('admin', 'lead-guide', 'guide'),
     getMonthlyPlan
   );
+
+// belirli alan içerisndeki turları bulma
+router
+  .route('/tours-within/:distance/center/:latlng/unit/:unit')
+  .get(getToursWithin);
+
+// uzaklıklaırnı bulma
+router.route('/distances/:latlng/unit/:unit').get(getDistances);
 
 // router'a yapılan isteklerde
 // çalışacak fonksiyonları belirleme

@@ -49,6 +49,8 @@ const tourSchema = new mongoose.Schema(
     ratingsAvarage: {
       type: Number,
       default: 4.0, // rating belirlemezsem devreye girer (varsayılan)
+      min: 1,
+      max: 5,
     },
     ratingQuantity: {
       type: Number,
@@ -141,6 +143,12 @@ const tourSchema = new mongoose.Schema(
   }
 );
 
+// birden fazla filtre için  index tanımlama
+tourSchema.index({ price: 1, ratingsAvarage: -1 });
+// hangi alan için coğrafi filtreleme yapıcaksak
+// o alan için index oluşturmak zorundayız
+tourSchema.index({ startLocation: '2dsphere' });
+
 //! virtual property (sanal değer)
 // veritabanında tutmamıza değmeyecek
 // ama frontend tarafından istenenelin veriler
@@ -198,10 +206,10 @@ tourSchema.pre(/^find/, function (next) {
 
 // Aggregation Middleware
 // istatistik hesaplarken ilk adımda gizli olanları çıkarma
-tourSchema.pre('aggregate', function (next) {
-  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-  next();
-});
+// tourSchema.pre('aggregate', function (next) {
+//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//   next();
+// });
 
 // model sayesinde schema yola çıkarak dökümanlar oluşturabilir
 // ve bunları veritabanına kaydedebiliriz.

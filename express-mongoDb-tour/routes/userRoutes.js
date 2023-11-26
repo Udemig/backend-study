@@ -26,7 +26,11 @@ router.patch(
 );
 
 // hesbaın bilgielerini güncelle
-router.patch('/updateMe', userController.updateMe);
+router.patch(
+  '/updateMe',
+  userController.uploadUserPhoto,
+  userController.updateMe
+);
 
 // hasabı inaktif yapar
 router.delete('/deleteMe', userController.deleteMe);

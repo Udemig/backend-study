@@ -3,9 +3,47 @@ const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const filterObj = require('../utils/filterObj');
 const factory = require('./handlerFactory');
+var multer = require('multer');
+
+const multerStorage = multer.diskStorage({
+  // hedef klasörü belirleme
+  destination: function (req, file, cb) {
+    cb(null, 'public/img/users');
+  },
+  // dosya ismini belirleme
+  filename: function (req, file, cb) {
+    const ext = file.mimetype.split('/')[1]; // jpg
+    cb(null, `/user-${req.user.id}-${Date.now()}.${ext}`);
+  },
+});
+
+// SADECE RTESİMLERİ KABUL EDER
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true);
+  } else {
+    cb(
+      new AppError(
+        'Lütfen bir resim türünde dosya gönderiniz..',
+        400
+      ),
+      false
+    );
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
+
+// fotoğrafı kaydeder
+exports.uploadUserPhoto = upload.single('photo');
 
 // kullanıclar için
 exports.updateMe = catchAsync(async (req, res, next) => {
+  console.log('body: ', req.body);
+  console.log('form: ', req.file);
   // 1) Şifre güncellemeye çalışırsa hata ver
   if (req.body.password || req.passwordConfirm) {
     return next(
