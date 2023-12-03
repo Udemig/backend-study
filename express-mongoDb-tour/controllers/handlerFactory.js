@@ -64,7 +64,7 @@ exports.createOne = (Model) =>
 exports.getOne = (Model, popOptions) =>
   catchAsync(async (req, res, next) => {
     // sorguyu oluştur
-    let query = Tour.findById(req.params.id);
+    let query = Model.findById(req.params.id);
 
     // eğerki populate ayarları gönderilyse yapılan sorguya ekle
     if (popOptions) query = query.populate(popOptions);

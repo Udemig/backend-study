@@ -4,18 +4,22 @@ const catchAsync = require('../utils/catchAsync');
 const filterObj = require('../utils/filterObj');
 const factory = require('./handlerFactory');
 var multer = require('multer');
+const sharp = require('sharp');
 
-const multerStorage = multer.diskStorage({
-  // hedef klasörü belirleme
-  destination: function (req, file, cb) {
-    cb(null, 'public/img/users');
-  },
-  // dosya ismini belirleme
-  filename: function (req, file, cb) {
-    const ext = file.mimetype.split('/')[1]; // jpg
-    cb(null, `/user-${req.user.id}-${Date.now()}.${ext}`);
-  },
-});
+// const multerStorage = multer.diskStorage({
+//   // hedef klasörü belirleme
+//   destination: function (req, file, cb) {
+//     cb(null, 'public/img/users');
+//   },
+//   // dosya ismini belirleme
+//   filename: function (req, file, cb) {
+//     const ext = file.mimetype.split('/')[1]; // jpg
+//     cb(null, `/user-${req.user.id}-${Date.now()}.${ext}`);
+//   },
+// });
+
+// resmi buffer olarak hafızada tut
+const multerStorage = multer.memoryStorage();
 
 // SADECE RTESİMLERİ KABUL EDER
 const multerFilter = (req, file, cb) => {
@@ -40,10 +44,23 @@ const upload = multer({
 // fotoğrafı kaydeder
 exports.uploadUserPhoto = upload.single('photo');
 
+// fotoğraf yeniden boyutlandır
+exports.resize = (req, res, next) => {
+  if (!req.file) return next();
+
+  const filename = `/user-${req.user.id}-${Date.now()}.jpeg`;
+
+  sharp(req.file.buffer)
+    .resize(500, 500)
+    .toFormat('jpeg')
+    .jpeg({ quality: 90 })
+    .toFile(`public/img/users/${filename}`);
+
+  next();
+};
+
 // kullanıclar için
 exports.updateMe = catchAsync(async (req, res, next) => {
-  console.log('body: ', req.body);
-  console.log('form: ', req.file);
   // 1) Şifre güncellemeye çalışırsa hata ver
   if (req.body.password || req.passwordConfirm) {
     return next(
@@ -56,6 +73,9 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
   // 2) Kullanıcının belirli bilgilerini güncelle
   const filtredBody = filterObj(req.body, 'name', 'email');
+
+  // eğerr fotoğraf varsa bunu kullanıncın bilgilerine ekle
+  if (req.file) filtredBody.photo = req.file.filename;
 
   const updatedUser = await User.findByIdAndUpdate(
     req.user.id,
